@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body
+    class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans"
+  >
+    <div
+      class="bg-white p-6 rounded-3xl shadow-xl w-full max-w-5xl border-2 border-gray-400 flex flex-col gap-6 h-[90vh]"
+    >
+      <div class="flex gap-4 h-48 shrink-0">
+        <div
+          class="w-1/4 border-2 border-gray-300 rounded-2xl p-4 flex flex-col justify-between"
+        >
+          <div>
+            <span class="block text-xs text-gray-500 uppercase">Guest</span>
+            <span class="font-bold text-lg">{{ stats.guest_name }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div
+              class="w-10 h-10 rounded-full border-2 border-green-500 text-green-600 flex items-center justify-center font-bold text-lg"
+            >
+              {{ stats.correct_count }}
+            </div>
+            <span class="text-sm text-green-700">Correct</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <div
+              class="w-10 h-10 rounded-full border-2 border-purple-500 text-purple-600 flex items-center justify-center font-bold text-lg"
+            >
+              {{ stats.skipped }}
+            </div>
+            <span class="text-sm text-purple-700">Skipped</span>
+          </div>
+        </div>
+
+        <div
+          class="flex-1 border-2 border-gray-300 rounded-2xl p-4 flex flex-col items-center justify-center bg-gray-50"
+        >
+          <span
+            class="text-gray-500 font-bold uppercase tracking-widest text-sm mb-2"
+            >{{ stats.topic }}</span
+          >
+          <div class="text-5xl font-black text-gray-800 mb-2">
+            {{ stats.score_percent }}%
+          </div>
+          <div class="text-sm text-gray-500">
+            Avg Time: {{ stats.time_taken }}
+          </div>
+        </div>
+
+        <div class="w-1/4 flex flex-col gap-4">
+          <div
+            class="flex-1 flex items-center justify-center rounded-2xl border-2 {{ 'bg-green-100 border-green-400 text-green-700' if stats.passed else 'bg-pink-100 border-pink-400 text-pink-700' }}"
+          >
+            <span class="text-3xl font-black uppercase"
+              >{{ 'PASSED' if stats.passed else 'FAILED' }}</span
+            >
+          </div>
+          <a
+            href="/"
+            class="h-16 flex items-center justify-center bg-yellow-300 hover:bg-yellow-400 border-2 border-yellow-500 rounded-2xl font-bold text-yellow-900 shadow transition"
+          >
+            Take to Home Page
+          </a>
+        </div>
+      </div>
+
+      <div
+        class="flex-1 border-2 border-gray-400 rounded-2xl overflow-hidden flex flex-col"
+      >
+        <div
+          class="bg-gray-100 p-3 border-b-2 border-gray-300 flex justify-between font-bold text-gray-600 uppercase text-xs"
+        >
+          <span>Wrongly Answered Questions</span>
+          <span>Correct Answer</span>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+          {% if stats.wrong_questions|length == 0 %}
+          <div
+            class="h-full flex items-center justify-center flex-col text-gray-400"
+          >
+            <span class="text-4xl">🎉</span>
+            <p>Perfect Score! Nothing to review.</p>
+          </div>
+          {% endif %} {% for item in stats.wrong_questions %}
+          <div
+            class="border border-red-200 rounded-xl p-4 bg-red-50 flex gap-4"
+          >
+            <div class="flex-1">
+              <p class="font-bold text-red-800 mb-2 text-sm">{{ item.text }}</p>
+              <div class="space-y-1">
+                {% for opt in item.options %} {% if loop.index0 in
+                item.user_ans_indices %}
+                <div class="text-xs text-red-500 line-through">
+                  You: {{ opt }}
+                </div>
+                {% endif %} {% endfor %} {% if item.user_ans_indices|length == 0
+                %}
+                <div class="text-xs text-purple-500 italic">
+                  You skipped this question
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="w-1/3 border-l pl-4 flex flex-col justify-center">
+              {% for opt_idx in item.correct_ans_indices %}
+              <div class="text-xs font-bold text-green-700">
+                ✔ {{ item.options[opt_idx] }}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

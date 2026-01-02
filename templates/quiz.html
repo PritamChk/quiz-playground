@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quiz Running</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .option-check:checked + div {
+        background-color: #fb923c;
+        border-color: #ea580c;
+        color: white;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 h-screen flex flex-col font-sans overflow-hidden">
+    <form id="resultForm" action="/submit_result" method="POST">
+      <input type="hidden" name="payload" id="payloadInput" />
+    </form>
+
+    <header
+      class="h-16 bg-white border-b-2 border-gray-400 flex items-center justify-between px-6 shadow-sm shrink-0"
+    >
+      <div class="font-bold text-xl text-gray-700 w-1/3">
+        Guest Name: <span id="guest-name" class="font-normal">...</span>
+      </div>
+      <div
+        class="font-bold text-xl text-gray-700 w-1/3 text-center border-l-2 border-r-2 border-gray-300"
+      >
+        Topic: <span id="topic-name" class="font-normal">...</span>
+      </div>
+      <div class="font-bold text-xl text-gray-700 w-1/3 text-right">
+        Timer:
+        <span id="timer-display" class="font-mono text-red-600">00:00</span>
+      </div>
+    </header>
+
+    <div class="flex-1 flex p-4 gap-4 overflow-hidden">
+      <div class="flex-1 flex flex-col gap-4 min-w-0">
+        <div
+          class="flex-1 bg-white border-2 border-gray-400 rounded-2xl p-6 overflow-y-auto relative shadow-sm"
+        >
+          <span
+            class="text-xs font-bold text-gray-400 uppercase tracking-widest"
+            id="q-type-label"
+            >Single Choice</span
+          >
+          <h2
+            class="text-2xl font-semibold text-gray-800 mt-2"
+            id="question-text"
+          >
+            Loading...
+          </h2>
+        </div>
+        <div
+          class="flex-1 bg-white border-2 border-gray-400 rounded-2xl p-6 overflow-y-auto shadow-sm"
+        >
+          <div id="options-container" class="space-y-4"></div>
+        </div>
+      </div>
+
+      <div class="w-80 flex flex-col gap-4 shrink-0">
+        <div
+          class="bg-white border-2 border-gray-400 rounded-2xl p-4 shadow-sm flex flex-col gap-3"
+        >
+          <div class="flex justify-between border-b pb-2">
+            <div class="flex items-center gap-2">
+              <div
+                class="w-8 h-8 rounded-full border-2 border-green-500 text-green-600 flex items-center justify-center font-bold"
+                id="count-answered"
+              >
+                0
+              </div>
+              <span class="text-xs text-green-700">Answered</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <div
+                class="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center font-bold"
+                id="count-remaining"
+              >
+                0
+              </div>
+              <span class="text-xs text-yellow-700">Remaining</span>
+            </div>
+          </div>
+          <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2">
+              <div
+                class="w-8 h-8 rounded-full border-2 border-purple-500 text-purple-600 flex items-center justify-center font-bold"
+                id="count-skipped"
+              >
+                0
+              </div>
+              <span class="text-xs text-purple-700">Skipped</span>
+            </div>
+            <button
+              onclick="finishExam()"
+              class="bg-pink-400 hover:bg-pink-500 text-white text-xs font-bold py-2 px-4 rounded shadow"
+            >
+              Finish Exam
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="flex-1 bg-white border-2 border-gray-400 rounded-2xl p-4 overflow-y-auto shadow-sm"
+        >
+          <div id="question-grid" class="grid grid-cols-4 gap-2"></div>
+        </div>
+
+        <div
+          class="bg-white border-2 border-gray-400 rounded-2xl p-4 shadow-sm flex gap-4"
+        >
+          <button
+            onclick="changeQ(-1)"
+            class="flex-1 bg-white border-2 border-gray-300 hover:bg-gray-100 font-bold py-2 rounded-xl"
+          >
+            PREV
+          </button>
+          <button
+            onclick="changeQ(1)"
+            class="flex-1 bg-white border-2 border-gray-300 hover:bg-gray-100 font-bold py-2 rounded-xl"
+          >
+            NEXT
+          </button>
+        </div>
+      </div>
+    </div>
+    <script id="quiz-data-json" type="application/json">
+      {{ quiz_data | safe }}
+    </script>
+    <script>
+      //const data = JSON.parse("{{ quiz_data | safe }}");
+      // Data injected from backend
+      // SAFER WAY TO LOAD DATA
+      const jsonElement = document.getElementById("quiz-data-json");
+      let data = {};
+
+      try {
+        data = JSON.parse(jsonElement.textContent);
+        console.log("Quiz Data Loaded:", data); // Debugging line
+      } catch (e) {
+        console.error("Failed to parse JSON:", e);
+        alert("Error loading quiz data. Please check the console.");
+      }
+
+      // Check if questions exist
+      if (!data.questions || data.questions.length === 0) {
+        document.getElementById("question-text").innerText =
+          "Error: No questions found for this topic!";
+      }
+
+      let currentIdx = 0;
+      let userAnswers = {}; // Format: { 0: [1], 1: [0, 3] } (Always array for uniformity)
+      let visited = new Set([0]);
+      let timeLeft = data.duration_seconds;
+      let initialTime = data.duration_seconds;
+
+      // Init Header
+      document.getElementById("guest-name").innerText = data.guest_name;
+      document.getElementById("topic-name").innerText = data.topic_name;
+      document.getElementById("count-remaining").innerText =
+        data.questions.length;
+
+      function render() {
+        const q = data.questions[currentIdx];
+
+        // Text & Type
+        document.getElementById("question-text").innerText = `Q${
+          currentIdx + 1
+        }. ${q.text}`;
+        document.getElementById("q-type-label").innerText =
+          q.type === "multi" ? "Multiple Select" : "Single Choice";
+
+        // Options
+        const container = document.getElementById("options-container");
+        container.innerHTML = "";
+
+        const currentAns = userAnswers[currentIdx] || [];
+        const inputType = q.type === "multi" ? "checkbox" : "radio";
+
+        q.options.forEach((opt, optIdx) => {
+          const isChecked = currentAns.includes(optIdx);
+          const label = document.createElement("label");
+          label.className =
+            "flex items-center gap-4 cursor-pointer group p-2 rounded-lg hover:bg-gray-50 transition";
+          label.innerHTML = `
+                    <input type="${inputType}" name="opt" value="${optIdx}" ${
+            isChecked ? "checked" : ""
+          } 
+                           class="option-check hidden" onchange="handleSelect(${optIdx}, '${
+            q.type
+          }')">
+                    <div class="w-6 h-6 border-2 border-gray-400 ${
+                      inputType === "radio" ? "rounded-full" : "rounded-md"
+                    } flex-shrink-0 flex items-center justify-center group-hover:border-gray-600 transition"></div>
+                    <span class="text-lg text-gray-800 font-medium">${opt}</span>
+                `;
+          container.appendChild(label);
+        });
+
+        updateStatsAndGrid();
+      }
+
+      function handleSelect(optIdx, type) {
+        if (type === "single") {
+          userAnswers[currentIdx] = [optIdx];
+        } else {
+          if (!userAnswers[currentIdx]) userAnswers[currentIdx] = [];
+          const arr = userAnswers[currentIdx];
+          if (arr.includes(optIdx)) {
+            // Remove if exists
+            userAnswers[currentIdx] = arr.filter((i) => i !== optIdx);
+            if (userAnswers[currentIdx].length === 0)
+              delete userAnswers[currentIdx];
+          } else {
+            arr.push(optIdx);
+          }
+        }
+        render(); // Re-render to update UI state
+      }
+
+      function updateStatsAndGrid() {
+        const grid = document.getElementById("question-grid");
+        grid.innerHTML = "";
+
+        const total = data.questions.length;
+        const answered = Object.keys(userAnswers).length;
+
+        document.getElementById("count-answered").innerText = answered;
+        document.getElementById("count-remaining").innerText = total - answered;
+
+        // Calc Skipped: Visited but no answer
+        let skipped = 0;
+        visited.forEach((i) => {
+          if (!userAnswers[i]) skipped++;
+        });
+        document.getElementById("count-skipped").innerText = skipped;
+
+        // Grid Gen
+        data.questions.forEach((_, i) => {
+          const btn = document.createElement("button");
+          btn.innerText = i + 1;
+          btn.onclick = () => {
+            currentIdx = i;
+            visited.add(i);
+            render();
+          };
+
+          let cls = "h-10 w-10 rounded-lg font-bold text-sm border-2 ";
+          if (i === currentIdx)
+            cls +=
+              "border-purple-500 bg-purple-100 text-purple-700 ring-2 ring-purple-300 ";
+          else if (userAnswers[i])
+            cls += "bg-green-200 border-green-400 text-green-700 ";
+          else if (visited.has(i))
+            cls += "bg-purple-50 border-purple-200 text-purple-400 ";
+          else
+            cls +=
+              "bg-yellow-100 border-yellow-200 text-yellow-600 opacity-60 ";
+
+          btn.className = cls;
+          grid.appendChild(btn);
+        });
+      }
+
+      function changeQ(dir) {
+        const newIdx = currentIdx + dir;
+        if (newIdx >= 0 && newIdx < data.questions.length) {
+          currentIdx = newIdx;
+          visited.add(currentIdx);
+          render();
+        }
+      }
+
+      function finishExam() {
+        // Prepare payload
+        const payload = {
+          guest_name: data.guest_name,
+          country_code: data.country_code, // <--- ADD THIS LINE
+          topic_name: data.topic_name,
+          pass_percent: data.pass_percent,
+          questions: data.questions,
+          answers: userAnswers,
+          skipped_count: document.getElementById("count-skipped").innerText,
+          time_taken_formatted: calculateTimeTaken(),
+        };
+
+        document.getElementById("payloadInput").value = JSON.stringify(payload);
+        document.getElementById("resultForm").submit();
+      }
+      //   function finishExam() {
+      //     // Prepare payload
+      //     const payload = {
+      //       guest_name: data.guest_name,
+      //       topic_name: data.topic_name,
+      //       pass_percent: data.pass_percent,
+      //       questions: data.questions, // Send back q's to backend for verifying
+      //       answers: userAnswers,
+      //       skipped_count: document.getElementById("count-skipped").innerText,
+      //       time_taken_formatted: calculateTimeTaken(),
+      //     };
+
+      //     document.getElementById("payloadInput").value = JSON.stringify(payload);
+      //     document.getElementById("resultForm").submit();
+      //   }
+
+      function calculateTimeTaken() {
+        const timeUsed = initialTime - timeLeft;
+        const m = Math.floor(timeUsed / 60);
+        const s = timeUsed % 60;
+        return `${m}m ${s}s`;
+      }
+
+      // Timer
+      // --- IMPROVED TIMER LOGIC (HH:MM:SS) ---
+      const timerInt = setInterval(() => {
+        if (timeLeft > 0) {
+          timeLeft--;
+
+          // Calculate Hours, Minutes, Seconds
+          const h = Math.floor(timeLeft / 3600);
+          const m = Math.floor((timeLeft % 3600) / 60);
+          const s = timeLeft % 60;
+
+          // Format strings (01:05:30)
+          const hStr = h > 0 ? h.toString().padStart(2, "0") + ":" : "";
+          const mStr = m.toString().padStart(2, "0");
+          const sStr = s.toString().padStart(2, "0");
+
+          document.getElementById(
+            "timer-display"
+          ).innerText = `${hStr}${mStr}:${sStr}`;
+        } else {
+          clearInterval(timerInt);
+          finishExam(); // Auto submit
+        }
+      }, 1000);
+
+      render();
+    </script>
+  </body>
+</html>

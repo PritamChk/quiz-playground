@@ -1,0 +1,30 @@
+[
+    {
+        "id": 1,
+        "type": "single",
+        "text": "Which command lists running containers?",
+        "options": ["docker run", "docker ps", "docker images", "docker build"],
+        "correct": [1]
+    },
+    {
+        "id": 2,
+        "type": "multi",
+        "text": "Select all valid Kubernetes objects.",
+        "options": ["Pod", "Docker", "Service", "Deployment"],
+        "correct": [0, 2, 3]
+    },
+    {
+        "id": 3,
+        "type": "single",
+        "text": "What is the default port for HTTP?",
+        "options": ["443", "8080", "80", "22"],
+        "correct": [2]
+    },
+    {
+        "id": 4,
+        "type": "single",
+        "text": "Which tool is primarily used for IaC?",
+        "options": ["Terraform", "Jenkins", "Git", "Nagios"],
+        "correct": [0]
+    }
+]

@@ -1,0 +1,20 @@
+[
+    {
+        "id": "devops",
+        "name": "DevOps Basic",
+        "description": "Docker, K8s, and CI/CD",
+        "question_count": 15
+    },
+    {
+        "id": "python",
+        "name": "Python Masters",
+        "description": "Asyncio, Decorators & OOP",
+        "question_count": 12
+    },
+    {
+        "id": "aws",
+        "name": "AWS Cloud",
+        "description": "EC2, S3, Lambda & IAM",
+        "question_count": 20
+    }
+]
