@@ -1,16 +1,17 @@
 Here is a professional `README.md` file for your project. You can save this as `README.md` in the root of your `quiz_app` folder.
 
 ## Excalidraw Design for Base Creation
+
 ![Quiz App Design 404](./imgs/design_diagram-1.png)
 
 ## Final Output
->1. Landing Page
->![Landing Page](./imgs/landing_page_1.png)
->1. Quiz Interface
->![Quiz Interface](./imgs/Quiz_page.png)
->1. Result Analysis
->![Result Analysis](./imgs/result_page.png)  
 
+> 1.  Landing Page
+>     ![Landing Page](./imgs/landing_page_1.png)
+> 1.  Quiz Interface
+>     ![Quiz Interface](./imgs/Quiz_page.png)
+> 1.  Result Analysis
+>     ![Result Analysis](./imgs/result_page.png)
 
 # Generic Quiz Platform 🚀
 
@@ -176,3 +177,8 @@ To add a new topic (e.g., "Java"):
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## AWS Preprod Region Setup | Terraform way
+
+> Arch Diagram
+> ![AWS Preprod Design](./imgs/quiz-stg-1.png)
