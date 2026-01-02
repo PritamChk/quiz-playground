@@ -182,3 +182,88 @@ To add a new topic (e.g., "Java"):
 
 > Arch Diagram
 > ![AWS Preprod Design](./imgs/quiz-stg-1.png)
+
+### Plan for it:
+
+---
+
+### **Terraform Steps (No Auto Scaling)**
+
+Since we are "parking" Auto Scaling for now, we will create **Standalone EC2 Instances**. This is actually better for learning because you have to manually attach them to the Load Balancer, helping you understand how the connection works.
+
+Here is your execution plan:
+
+#### **Phase 1: The Network Foundation**
+
+1. **Create VPC:** Define the IP range (e.g., `172.16.0.0/16` as per your diagram).
+2. **Create 4 Subnets:**
+
+- `Public-Subnet-1a` & `Public-Subnet-1b`
+- `Private-Subnet-1a` & `Private-Subnet-1b`
+
+3. **Create Internet Gateway (IGW):** Attach to VPC.
+4. **Create NAT Gateway:**
+
+- Create 1 Elastic IP (EIP).
+- Create the NAT Gateway and place it in `Public-Subnet-1a`.
+
+5. **Create Route Tables:**
+
+- **Public RT:** Route `0.0.0.0/0` `IGW`. Associate with both Public Subnets.
+- **Private RT:** Route `0.0.0.0/0` `NAT Gateway`. Associate with both Private Subnets.
+
+#### **Phase 2: The S3 "Shortcut" (Crucial Step)**
+
+6. **Create S3 Bucket:** Define your bucket.
+7. **Upload Objects:** Use `for_each` to upload your `data/` folder.
+8. **Create VPC Endpoint:**
+
+- Service: `com.amazonaws.ap-south-1.s3`
+- Type: `Gateway`
+- VPC: Your VPC ID.
+
+9. **Associate Endpoint:** Link this Endpoint to your **Private Route Table**. _This automates the routing magic._
+
+#### **Phase 3: Security**
+
+10. **Create IAM Role:** Allow `s3:GetObject` and `s3:PutObject`. Create the Instance Profile.
+11. **Create Security Groups:**
+
+- **ALB-SG:** Allow Port 80 from `0.0.0.0/0`.
+- **App-SG:** Allow Port 8000 **ONLY** from `ALB-SG`.
+
+#### **Phase 4: The Application (Compute)**
+
+_Since we skipped ASG, we create instances directly._
+
+12. **Create EC2 Instance 1:**
+
+- Subnet: `Private-Subnet-1a`
+- Security Group: `App-SG`
+- IAM Profile: Your S3 Role.
+- **User Data:** Your script to install Python/Start App.
+
+13. **Create EC2 Instance 2:**
+
+- Subnet: `Private-Subnet-1b`
+- _(Same config as above)_.
+
+#### **Phase 5: Load Balancing**
+
+14. **Create Target Group:**
+
+- Port: 8000
+- Protocol: HTTP
+- Target Type: `instance`
+
+15. **Create Application Load Balancer (ALB):**
+
+- Subnets: `Public-Subnet-1a` AND `Public-Subnet-1b`.
+- Security Group: `ALB-SG`.
+
+16. **Create Listener:** Forward Port 80 Target Group.
+17. **Attach Targets (Manual Attachment):**
+
+- Use `aws_lb_target_group_attachment` resource.
+- Attach **Instance 1 ID** to the Target Group.
+- Attach **Instance 2 ID** to the Target Group.
