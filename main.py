@@ -15,7 +15,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # --- AWS CONFIGURATION ---
-S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME","tf-learning-s3b-pc")
 AWS_REGION = os.getenv("AWS_REGION", "ap-south-1")
 LOCK_FILE_KEY = "system_lock.json"  # <--- The Lock File
 
